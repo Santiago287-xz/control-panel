@@ -1,115 +1,108 @@
-import { pgTable, uuid, text, boolean, timestamp, json, integer, varchar } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, text, boolean, timestamp, json, integer } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
 // Tipos TypeScript
 export interface OrganizationSettings {
   theme?: string
-  allowRegistration?: boolean
-  maxUsers?: number
+  logo?: string
+  timezone?: string
   features?: string[]
 }
 
-// Organizaciones
+// Organizaciones (gimnasios, restaurantes, etc.)
 export const organizations = pgTable('organizations', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
-  slug: varchar('slug', { length: 100 }).unique().notNull(),
+  slug: text('slug').unique().notNull(),
   type: text('type').notNull(), // 'gym', 'restaurant', 'clinic'
-  domain: text('domain'),
-  dbConnectionString: text('db_connection_string'),
+  domain: text('domain'), // Subdominio asignado
+  dbConnectionString: text('db_connection_string'), // Para DB separada (opcional)
   settings: json('settings').$type<OrganizationSettings>(),
   isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 })
 
-// Usuarios
+// Usuarios del sistema
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  email: varchar('email', { length: 255 }).unique().notNull(),
+  email: text('email').unique().notNull(),
   name: text('name').notNull(),
   hashedPassword: text('hashed_password'),
-  googleId: text('google_id'),
-  organizationId: uuid('organization_id'),
+  googleId: text('google_id'), // Para OAuth futuro
+  organizationId: uuid('organization_id').references(() => organizations.id),
   isOrgAdmin: boolean('is_org_admin').default(false),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
+  accessToken: text('access_token').unique(),
   tokenExpiry: timestamp('token_expiry'),
   lastLoginAt: timestamp('last_login_at'),
   isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 })
 
-// Super Administradores
+// Super Administradores del Sistema
 export const superAdmins = pgTable('super_admins', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').unique().notNull(),
+  userId: uuid('user_id').references(() => users.id).unique(),
   level: integer('level').default(1), // 1: básico, 2: avanzado, 3: root
   twoFactorEnabled: boolean('two_factor_enabled').default(false),
   twoFactorSecret: text('two_factor_secret'),
   lastLoginAt: timestamp('last_login_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
 })
 
-// Módulos
+// Módulos disponibles del sistema
 export const modules = pgTable('modules', {
   id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name', { length: 100 }).unique().notNull(),
-  displayName: text('display_name').notNull(),
+  name: text('name').unique().notNull(), // 'user_management', 'sales', 'courts'
+  displayName: text('display_name').notNull(), // 'Gestión de Usuarios'
   description: text('description'),
-  icon: text('icon'),
+  icon: text('icon'), // Nombre del icono
   category: text('category').notNull(), // 'core', 'business', 'analytics'
   isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
 })
 
 // Permisos por módulo para organizaciones
 export const organizationModules = pgTable('organization_modules', {
   id: uuid('id').primaryKey().defaultRandom(),
-  organizationId: uuid('organization_id').notNull(),
-  moduleId: uuid('module_id').notNull(),
+  organizationId: uuid('organization_id').references(() => organizations.id),
+  moduleId: uuid('module_id').references(() => modules.id),
   isEnabled: boolean('is_enabled').default(true),
-  config: json('config'),
-  grantedBy: uuid('granted_by').notNull(),
-  grantedAt: timestamp('granted_at').defaultNow().notNull(),
+  config: json('config'), // Configuración específica del módulo
+  grantedBy: uuid('granted_by').references(() => users.id), // Super admin que lo otorgó
+  grantedAt: timestamp('granted_at').defaultNow(),
 })
 
-// Permisos de usuarios en módulos
+// Permisos específicos de usuarios en módulos
 export const userModulePermissions = pgTable('user_module_permissions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
-  organizationModuleId: uuid('organization_module_id').notNull(),
+  userId: uuid('user_id').references(() => users.id),
+  organizationModuleId: uuid('organization_module_id').references(() => organizationModules.id),
   canRead: boolean('can_read').default(true),
   canWrite: boolean('can_write').default(false),
   canDelete: boolean('can_delete').default(false),
-  canManage: boolean('can_manage').default(false),
-  grantedBy: uuid('granted_by').notNull(),
-  grantedAt: timestamp('granted_at').defaultNow().notNull(),
+  canManage: boolean('can_manage').default(false), // Gestionar otros usuarios del módulo
+  grantedBy: uuid('granted_by').references(() => users.id),
+  grantedAt: timestamp('granted_at').defaultNow(),
 })
 
-// Logs de auditoría
+// Logs de auditoría completos
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id'),
-  organizationId: uuid('organization_id'),
-  action: text('action').notNull(),
-  resource: text('resource').notNull(),
-  resourceId: text('resource_id'),
-  details: json('details'),
+  userId: uuid('user_id').references(() => users.id),
+  organizationId: uuid('organization_id').references(() => organizations.id),
+  action: text('action').notNull(), // 'login', 'create_user', 'grant_permission'
+  resource: text('resource').notNull(), // 'user', 'organization', 'module'
+  resourceId: text('resource_id'), // ID del recurso afectado
+  details: json('details'), // Detalles adicionales
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   success: boolean('success').default(true),
-  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  timestamp: timestamp('timestamp').defaultNow(),
 })
 
-// Relaciones
-export const organizationsRelations = relations(organizations, ({ many, one }) => ({
-  users: many(users),
-  organizationModules: many(organizationModules),
-  auditLogs: many(auditLogs),
-}))
-
+// Relaciones para Drizzle ORM
 export const usersRelations = relations(users, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [users.organizationId],
@@ -119,19 +112,18 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.id],
     references: [superAdmins.userId],
   }),
-  userModulePermissions: many(userModulePermissions),
+  modulePermissions: many(userModulePermissions),
   auditLogs: many(auditLogs),
 }))
 
-export const superAdminsRelations = relations(superAdmins, ({ one }) => ({
-  user: one(users, {
-    fields: [superAdmins.userId],
-    references: [users.id],
-  }),
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+  users: many(users),
+  modules: many(organizationModules),
+  auditLogs: many(auditLogs),
 }))
 
 export const modulesRelations = relations(modules, ({ many }) => ({
-  organizationModules: many(organizationModules),
+  organizations: many(organizationModules),
 }))
 
 export const organizationModulesRelations = relations(organizationModules, ({ one, many }) => ({
@@ -143,7 +135,7 @@ export const organizationModulesRelations = relations(organizationModules, ({ on
     fields: [organizationModules.moduleId],
     references: [modules.id],
   }),
-  userModulePermissions: many(userModulePermissions),
+  userPermissions: many(userModulePermissions),
 }))
 
 export const userModulePermissionsRelations = relations(userModulePermissions, ({ one }) => ({

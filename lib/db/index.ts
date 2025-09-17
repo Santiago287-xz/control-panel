@@ -4,9 +4,15 @@ import * as schema from './schema'
 
 const connectionString = process.env.DATABASE_URL!
 
-// Conexión para queries
-const queryClient = postgres(connectionString)
-export const db = drizzle(queryClient, { schema })
+// Configuración explícita para evitar conflictos con variables del sistema
+const client = postgres(connectionString, { 
+  prepare: false,
+  user: 'admin',
+  password: 'admin123',
+  host: 'localhost',
+  port: 5432,
+  database: 'saas_db'
+})
+export const db = drizzle(client, { schema })
 
-// Conexión para migraciones
-export const migrationClient = postgres(connectionString, { max: 1 })
+export type DB = typeof db
