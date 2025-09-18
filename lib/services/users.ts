@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { users, superAdmins } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
-import { TokenService } from '@/lib/auth/tokens'
+import { TokenService } from '@/lib/auth/configtokens'
 
 export interface CreateUserData {
   email: string
