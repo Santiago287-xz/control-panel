@@ -1,11 +1,15 @@
+// app/api/super-admin/modules/[moduleId]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from '@/lib/auth/config'
 import { db } from '@/lib/db'
-import { modulePages } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { modules, organizationModules } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ moduleId: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ moduleId: string }> }
+) {
   try {
     const { moduleId } = await params
     const session = await getServerSession(authOptions)
@@ -14,38 +18,35 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const pages = await db.select().from(modulePages).where(eq(modulePages.moduleId, moduleId))
-    return NextResponse.json({ pages })
-  } catch (error) {
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
-  }
-}
+    // Verificar si el módulo tiene organizaciones asignadas
+    const orgAssignments = await db
+      .select()
+      .from(organizationModules)
+      .where(eq(organizationModules.moduleId, moduleId))
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ moduleId: string }> }) {
-  try {
-    const { moduleId } = await params
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.isSuperAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (orgAssignments.length > 0) {
+      return NextResponse.json({ 
+        error: 'Cannot delete module', 
+        message: `Módulo tiene ${orgAssignments.length} organización(es) asignada(s). Remuévelas primero.` 
+      }, { status: 400 })
     }
 
-    const body = await request.json()
-    const { name, displayName, routePath, description, icon, requiresId, sortOrder } = body
+    // Eliminar módulo (cascade eliminará páginas y permisos)
+    const [deletedModule] = await db
+      .delete(modules)
+      .where(eq(modules.id, moduleId))
+      .returning()
 
-    const [newPage] = await db.insert(modulePages).values({
-      moduleId,
-      name,
-      displayName,
-      routePath,
-      description,
-      icon,
-      requiresId: requiresId || false,
-      sortOrder: sortOrder || 0,
-    }).returning()
+    if (!deletedModule) {
+      return NextResponse.json({ error: 'Module not found' }, { status: 404 })
+    }
 
-    return NextResponse.json({ page: newPage })
+    return NextResponse.json({ 
+      success: true, 
+      message: `Módulo ${deletedModule.displayName} eliminado correctamente` 
+    })
   } catch (error) {
+    console.error('Error deleting module:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

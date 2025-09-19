@@ -1,11 +1,9 @@
-// app/api/permissions/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { organizationModules, modules } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
-import { getUserModulePermissions } from '@/lib/modules/registry'
 
 export async function GET() {
   try {
@@ -28,7 +26,7 @@ export async function GET() {
       return NextResponse.json({ permissions })
     }
 
-    // Regular users - get org enabled modules + role permissions
+    // Regular users - get org enabled modules with basic permissions
     if (!session.user.organizationId) {
       return NextResponse.json({ permissions: [] })
     }
@@ -48,17 +46,15 @@ export async function GET() {
         )
       )
 
-    const permissions = orgModules.map(module => {
-      const userPermissions = getUserModulePermissions(module.moduleName, session.user.role)
-      return {
-        moduleId: module.moduleId,
-        moduleName: module.moduleName,
-        canRead: userPermissions.includes('view'),
-        canWrite: userPermissions.includes('create') || userPermissions.includes('edit'),
-        canDelete: userPermissions.includes('delete'),
-        canManage: userPermissions.includes('manage')
-      }
-    })
+    // Dar permisos básicos por ahora, después implementa tu lógica dinámica
+    const permissions = orgModules.map(module => ({
+      moduleId: module.moduleId,
+      moduleName: module.moduleName,
+      canRead: true,
+      canWrite: true, 
+      canDelete: false,
+      canManage: false
+    }))
 
     return NextResponse.json({ permissions })
   } catch (error) {

@@ -1,11 +1,9 @@
-
-// lib/modules/permissions.ts
+// lib/modules/permissions.ts - SIN REGISTRY
 import { getServerSession } from "next-auth/next"
 import { authOptions } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { organizationModules, modules } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
-import { getUserModulePermissions } from './registry'
 
 export async function checkModuleAccess(
   userId: string,
@@ -13,7 +11,6 @@ export async function checkModuleAccess(
   moduleName: string
 ): Promise<boolean> {
   try {
-    // Verificar que el módulo esté habilitado para la organización
     const [orgModule] = await db
       .select()
       .from(organizationModules)
@@ -42,8 +39,15 @@ export async function getSessionWithPermissions() {
     ...session,
     user: {
       ...session.user,
-      canAccess: (moduleName: string, action: string = 'view') => {
-        return getUserModulePermissions(moduleName, session.user.role).includes(action)
+      canAccess: async (moduleName: string) => {
+        if (session.user.isSuperAdmin) return true
+        if (!session.user.organizationId) return false
+        
+        return await checkModuleAccess(
+          session.user.id, 
+          session.user.organizationId, 
+          moduleName
+        )
       }
     }
   }

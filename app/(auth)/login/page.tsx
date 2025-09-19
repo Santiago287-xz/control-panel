@@ -79,7 +79,8 @@ export default function LoginPage() {
 
         <div className="mt-4 text-sm text-gray-400">
           <p>Super Admin: admin@admin.com / admin123</p>
-          <p>Org Admin: admin@gimnasio-demo.com / admin123</p>
+          <p>Org Admin: admin@gimnasio-central.com / admin123</p>
+          <p>Spa: admin@spa-wellness.com / admin123</p>
         </div>
       </div>
     </div>

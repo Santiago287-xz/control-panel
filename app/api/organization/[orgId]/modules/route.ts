@@ -1,10 +1,10 @@
-// app/api/organization/[orgId]/modules/route.ts
+// app/api/organizations/[orgId]/modules/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { organizationModules, modules } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 export async function GET(
   request: NextRequest, 
@@ -31,6 +31,7 @@ export async function GET(
 
     return NextResponse.json({ modules: orgModules })
   } catch (error) {
+    console.error('GET org modules error:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
@@ -70,7 +71,7 @@ export async function PUT(
       message: `Asignados ${moduleIds?.length || 0} módulos` 
     })
   } catch (error) {
-    console.error('Error updating org modules:', error)
+    console.error('PUT org modules error:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
