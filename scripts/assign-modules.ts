@@ -64,6 +64,7 @@ async function assignModules() {
 
     for (const orgModule of orgModules) {
       try {
+        
         const [existing] = await db.select()
           .from(userModulePermissions)
           .where(eq(userModulePermissions.userId, orgAdmin.id))

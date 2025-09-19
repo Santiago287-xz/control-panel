@@ -1,3 +1,4 @@
+// types/next-auth.d.ts (ACTUALIZADO)
 import NextAuth from "next-auth"
 
 declare module "next-auth" {
@@ -6,8 +7,9 @@ declare module "next-auth" {
       id: string
       email: string
       name: string
-      isSuperAdmin: boolean
+      role: string
       organizationId?: string
+      isSuperAdmin: boolean
     }
   }
 
@@ -15,7 +17,8 @@ declare module "next-auth" {
     id: string
     email: string
     name: string
-    isSuperAdmin: boolean
+    role: string
     organizationId?: string
+    isSuperAdmin: boolean
   }
 }
