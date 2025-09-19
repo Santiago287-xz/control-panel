@@ -47,41 +47,41 @@ export default function SuperAdminPage() {
       <h1 className="text-2xl font-bold mb-6">Super Admin Dashboard</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-600">Organizaciones</h3>
+        <div className="bg-zinc-800 p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold text-gray-100">Organizaciones</h3>
           <p className="text-3xl font-bold text-blue-600">{stats.totalOrganizations}</p>
-          <p className="text-sm text-gray-500">{stats.activeOrganizations} activas</p>
+          <p className="text-sm text-gray-300">{stats.activeOrganizations} activas</p>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-600">Módulos</h3>
+        <div className="bg-zinc-800 p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold text-gray-100">Módulos</h3>
           <p className="text-3xl font-bold text-green-600">{stats.totalModules}</p>
-          <p className="text-sm text-gray-500">Disponibles</p>
+          <p className="text-sm text-gray-300">Disponibles</p>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-600">Sistema</h3>
+        <div className="bg-zinc-800 p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold text-gray-100">Sistema</h3>
           <p className="text-3xl font-bold text-purple-600">Activo</p>
-          <p className="text-sm text-gray-500">Funcionando</p>
+          <p className="text-sm text-gray-300">Funcionando</p>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-zinc-800 p-6 rounded-lg shadow">
         <h2 className="text-lg font-semibold mb-4">Acciones Rápidas</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <a
             href="/super-admin/modules"
-            className="p-4 border rounded hover:bg-gray-50 transition-colors"
+            className="p-4 border rounded hover:bg-zinc-700 transition-colors"
           >
             <h3 className="font-medium">Gestionar Módulos</h3>
-            <p className="text-sm text-gray-600">Crear y administrar módulos del sistema</p>
+            <p className="text-sm text-gray-100">Crear y administrar módulos del sistema</p>
           </a>
           <a
             href="/super-admin/organizations"
-            className="p-4 border rounded hover:bg-gray-50 transition-colors"
+            className="p-4 border rounded hover:bg-zinc-700 transition-colors"
           >
             <h3 className="font-medium">Gestionar Organizaciones</h3>
-            <p className="text-sm text-gray-600">Asignar módulos a organizaciones</p>
+            <p className="text-sm text-gray-100">Asignar módulos a organizaciones</p>
           </a>
         </div>
       </div>

@@ -39,7 +39,7 @@ export default function SuperAdminLayout({
                 <Link
                   href="/super-admin"
                   className={`block px-3 py-2 rounded ${
-                    isActive("/super-admin") ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                    isActive("/super-admin") ? "bg-blue-100 text-blue-700" : "hover:bg-gray-700"
                   }`}
                 >
                   Dashboard
@@ -49,7 +49,7 @@ export default function SuperAdminLayout({
                 <Link
                   href="/super-admin/organizations"
                   className={`block px-3 py-2 rounded ${
-                    pathname.startsWith("/super-admin/organizations") ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                    pathname.startsWith("/super-admin/organizations") ? "bg-blue-100 text-blue-700" : "hover:bg-gray-700"
                   }`}
                 >
                   Organizaciones
@@ -59,7 +59,7 @@ export default function SuperAdminLayout({
                 <Link
                   href="/super-admin/modules"
                   className={`block px-3 py-2 rounded ${
-                    pathname.startsWith("/super-admin/modules") ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                    pathname.startsWith("/super-admin/modules") ? "bg-blue-100 text-blue-700" : "hover:bg-gray-700"
                   }`}
                 >
                   Módulos

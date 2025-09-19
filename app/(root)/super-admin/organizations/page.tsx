@@ -75,7 +75,7 @@ export default function OrganizationsPage() {
       <h1 className="text-2xl font-bold mb-6">Gestión de Organizaciones</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-zinc-800 p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Organizaciones</h2>
           <div className="space-y-2">
             {organizations.map((org) => (
@@ -94,7 +94,7 @@ export default function OrganizationsPage() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-zinc-800 p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Asignar Módulo</h2>
           <div className="space-y-4">
             <div>

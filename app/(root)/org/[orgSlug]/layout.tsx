@@ -1,3 +1,4 @@
+// app/(root)/org/[orgSlug]/layout.tsx
 "use client"
 
 import { use } from "react"
@@ -23,7 +24,7 @@ export default function OrgLayout({
   if (loading) return <div className="p-8">Cargando...</div>
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 text-black">
       <header className="bg-white shadow">
         <div className="px-6 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">Panel Organización</h1>
@@ -56,11 +57,12 @@ export default function OrgLayout({
               {modules.map((module) => (
                 <li key={module.id}>
                   <Link
-                    href={`/org/${orgSlug}/module/${module.id}`}
+                    href={`/org/${orgSlug}/${module.name}`}
                     className={`block px-3 py-2 rounded ${
-                      isActive(`/org/${orgSlug}/module/${module.id}`) ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                      isActive(`/org/${orgSlug}/${module.name}`) ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
                     }`}
                   >
+                    {module.icon && <span className="mr-2">{module.icon}</span>}
                     {module.displayName}
                   </Link>
                 </li>

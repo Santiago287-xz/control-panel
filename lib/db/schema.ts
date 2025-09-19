@@ -1,5 +1,5 @@
-// lib/db/schema.ts
-import { pgTable, uuid, text, boolean, timestamp, json, unique } from 'drizzle-orm/pg-core'
+// lib/db/schema.ts - ACTUALIZADO
+import { pgTable, uuid, text, boolean, timestamp, json, unique, integer, index } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
 // Organizaciones
@@ -29,7 +29,7 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
-// Super Administradores (solo para gestión del sistema)
+// Super Administradores
 export const superAdmins = pgTable('super_admins', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id).unique(),
@@ -48,24 +48,73 @@ export const modules = pgTable('modules', {
   createdAt: timestamp('created_at').defaultNow(),
 })
 
-// Módulos habilitados por organización
+// Páginas/subpáginas de módulos
+export const modulePages = pgTable('module_pages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  moduleId: uuid('module_id').references(() => modules.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(), // 'list', 'create', 'edit', 'dashboard'
+  displayName: text('display_name').notNull(), // 'Lista', 'Crear', 'Editar'
+  routePath: text('route_path').notNull(), // '/booking', '/booking/create'
+  description: text('description'),
+  icon: text('icon'),
+  requiresId: boolean('requires_id').default(false), // true for edit/delete pages
+  isActive: boolean('is_active').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  uniqueModulePage: unique().on(table.moduleId, table.name),
+  moduleIdIdx: index('idx_module_pages_module_id').on(table.moduleId),
+  routePathIdx: index('idx_module_pages_route_path').on(table.routePath),
+}))
+
+// Módulos habilitados por organización (mantener compatibilidad)
 export const organizationModules = pgTable('organization_modules', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: uuid('organization_id').references(() => organizations.id),
   moduleId: uuid('module_id').references(() => modules.id),
   isEnabled: boolean('is_enabled').default(true),
-  config: json('config'), // Configuración específica del módulo
+  config: json('config'),
   grantedAt: timestamp('granted_at').defaultNow(),
 }, (table) => ({
   uniqueOrgModule: unique().on(table.organizationId, table.moduleId)
 }))
 
-// Tabla genérica para datos de cualquier módulo
+// Permisos granulares por página de módulo para organizaciones
+export const organizationModulePages = pgTable('organization_module_pages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
+  modulePageId: uuid('module_page_id').references(() => modulePages.id, { onDelete: 'cascade' }).notNull(),
+  canRead: boolean('can_read').default(false),
+  canWrite: boolean('can_write').default(false),
+  canDelete: boolean('can_delete').default(false),
+  grantedAt: timestamp('granted_at').defaultNow(),
+  grantedBy: uuid('granted_by').references(() => users.id),
+}, (table) => ({
+  uniqueOrgModulePage: unique().on(table.organizationId, table.modulePageId),
+  orgIdIdx: index('idx_organization_module_pages_org_id').on(table.organizationId),
+}))
+
+// Permisos de usuario por página (override organization permissions)
+export const userModulePagePermissions = pgTable('user_module_page_permissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  modulePageId: uuid('module_page_id').references(() => modulePages.id, { onDelete: 'cascade' }).notNull(),
+  canRead: boolean('can_read').default(false),
+  canWrite: boolean('can_write').default(false),
+  canDelete: boolean('can_delete').default(false),
+  grantedAt: timestamp('granted_at').defaultNow(),
+  grantedBy: uuid('granted_by').references(() => users.id),
+}, (table) => ({
+  uniqueUserModulePage: unique().on(table.userId, table.modulePageId),
+  userIdIdx: index('idx_user_module_page_permissions_user_id').on(table.userId),
+}))
+
+// Tabla genérica para datos de cualquier módulo (mantener)
 export const moduleData = pgTable('module_data', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: uuid('organization_id').references(() => organizations.id).notNull(),
-  moduleType: text('module_type').notNull(), // 'booking', 'pos', 'user', etc.
-  entityType: text('entity_type').notNull(), // 'reservation', 'sale', 'customer', etc.
+  moduleType: text('module_type').notNull(),
+  entityType: text('entity_type').notNull(),
   data: json('data').notNull(),
   status: text('status').default('active'),
   createdBy: uuid('created_by').references(() => users.id),
@@ -74,7 +123,7 @@ export const moduleData = pgTable('module_data', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
-// Logs de auditoría
+// Logs de auditoría (mantener)
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: uuid('organization_id').references(() => organizations.id),
@@ -87,7 +136,7 @@ export const auditLogs = pgTable('audit_logs', {
   timestamp: timestamp('timestamp').defaultNow(),
 })
 
-// Relaciones
+// RELACIONES ACTUALIZADAS
 export const usersRelations = relations(users, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [users.organizationId],
@@ -99,16 +148,28 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
   createdData: many(moduleData, { relationName: 'createdBy' }),
   updatedData: many(moduleData, { relationName: 'updatedBy' }),
+  userModulePagePermissions: many(userModulePagePermissions),
 }))
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),
   modules: many(organizationModules),
   data: many(moduleData),
+  organizationModulePages: many(organizationModulePages),
 }))
 
 export const modulesRelations = relations(modules, ({ many }) => ({
   organizations: many(organizationModules),
+  pages: many(modulePages),
+}))
+
+export const modulePagesRelations = relations(modulePages, ({ one, many }) => ({
+  module: one(modules, {
+    fields: [modulePages.moduleId],
+    references: [modules.id],
+  }),
+  organizationPages: many(organizationModulePages),
+  userPermissions: many(userModulePagePermissions),
 }))
 
 export const organizationModulesRelations = relations(organizationModules, ({ one }) => ({
@@ -119,6 +180,36 @@ export const organizationModulesRelations = relations(organizationModules, ({ on
   module: one(modules, {
     fields: [organizationModules.moduleId],
     references: [modules.id],
+  }),
+}))
+
+export const organizationModulePagesRelations = relations(organizationModulePages, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [organizationModulePages.organizationId],
+    references: [organizations.id],
+  }),
+  modulePage: one(modulePages, {
+    fields: [organizationModulePages.modulePageId],
+    references: [modulePages.id],
+  }),
+  grantedByUser: one(users, {
+    fields: [organizationModulePages.grantedBy],
+    references: [users.id],
+  }),
+}))
+
+export const userModulePagePermissionsRelations = relations(userModulePagePermissions, ({ one }) => ({
+  user: one(users, {
+    fields: [userModulePagePermissions.userId],
+    references: [users.id],
+  }),
+  modulePage: one(modulePages, {
+    fields: [userModulePagePermissions.modulePageId],
+    references: [modulePages.id],
+  }),
+  grantedByUser: one(users, {
+    fields: [userModulePagePermissions.grantedBy],
+    references: [users.id],
   }),
 }))
 

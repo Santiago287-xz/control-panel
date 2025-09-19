@@ -22,7 +22,7 @@ export default function OrgDashboardPage() {
             {availableModules.length > 0 ? (
               availableModules.map((module: any) => (
                 <div key={module.moduleId} className="p-3 border rounded">
-                  <div className="font-medium">Módulo: {module.moduleId.slice(0, 8)}...</div>
+                  <div className="font-medium">Módulo: {module.moduleId.slice(0, 8)} - {module.moduleName}</div>
                   <div className="text-sm text-gray-600">
                     Permisos: 
                     {module.canRead && " Leer"}

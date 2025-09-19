@@ -1,6 +1,6 @@
-// lib/db/seed.ts
+// lib/db/seed.ts - ACTUALIZADO
 import { db } from './index'
-import { modules, users, superAdmins, organizations, organizationModules } from './schema'
+import { modules, modulePages, users, superAdmins, organizations, organizationModules, organizationModulePages } from './schema'
 import bcrypt from 'bcryptjs'
 
 async function seed() {
@@ -37,35 +37,71 @@ async function seed() {
         description: 'Reportes y estadísticas',
         icon: 'BarChart',
         category: 'analytics'
-      },
-      {
-        name: 'current-accounts',
-        displayName: 'Cuentas Corrientes',
-        description: 'Gestión de cuentas y pagos',
-        icon: 'DollarSign',
-        category: 'business'
       }
     ]
 
-    await db.insert(modules).values(moduleData).onConflictDoNothing()
+    const insertedModules = await db.insert(modules).values(moduleData).onConflictDoNothing().returning()
 
-    // 2. Crear organizaciones
+    // 2. Crear páginas para cada módulo
+    console.log('📄 Creando páginas de módulos...')
+    
+    // Obtener todos los módulos
+    const allModules = await db.select().from(modules)
+    
+    const pageData = []
+    
+    // Booking pages
+    const bookingModule = allModules.find(m => m.name === 'booking')
+    if (bookingModule) {
+      pageData.push(
+        { moduleId: bookingModule.id, name: 'dashboard', displayName: 'Panel', routePath: '', description: 'Dashboard principal', icon: '📊', requiresId: false, sortOrder: 0 },
+        { moduleId: bookingModule.id, name: 'list', displayName: 'Lista', routePath: '/list', description: 'Lista de reservas', icon: '📋', requiresId: false, sortOrder: 1 },
+        { moduleId: bookingModule.id, name: 'create', displayName: 'Crear', routePath: '/create', description: 'Nueva reserva', icon: '➕', requiresId: false, sortOrder: 2 },
+        { moduleId: bookingModule.id, name: 'edit', displayName: 'Editar', routePath: '/edit', description: 'Editar reserva', icon: '✏️', requiresId: true, sortOrder: 3 }
+      )
+    }
+
+    // POS pages
+    const posModule = allModules.find(m => m.name === 'pos')
+    if (posModule) {
+      pageData.push(
+        { moduleId: posModule.id, name: 'dashboard', displayName: 'Panel', routePath: '', description: 'Dashboard de ventas', icon: '📊', requiresId: false, sortOrder: 0 },
+        { moduleId: posModule.id, name: 'sales', displayName: 'Ventas', routePath: '/sales', description: 'Historial de ventas', icon: '💰', requiresId: false, sortOrder: 1 },
+        { moduleId: posModule.id, name: 'new-sale', displayName: 'Nueva Venta', routePath: '/new-sale', description: 'Realizar venta', icon: '🛒', requiresId: false, sortOrder: 2 }
+      )
+    }
+
+    // Users pages
+    const usersModule = allModules.find(m => m.name === 'users')
+    if (usersModule) {
+      pageData.push(
+        { moduleId: usersModule.id, name: 'dashboard', displayName: 'Panel', routePath: '', description: 'Dashboard de usuarios', icon: '📊', requiresId: false, sortOrder: 0 },
+        { moduleId: usersModule.id, name: 'list', displayName: 'Lista', routePath: '/list', description: 'Lista de usuarios', icon: '👥', requiresId: false, sortOrder: 1 },
+        { moduleId: usersModule.id, name: 'create', displayName: 'Crear', routePath: '/create', description: 'Nuevo usuario', icon: '👤', requiresId: false, sortOrder: 2 },
+        { moduleId: usersModule.id, name: 'edit', displayName: 'Editar', routePath: '/edit', description: 'Editar usuario', icon: '✏️', requiresId: true, sortOrder: 3 }
+      )
+    }
+
+    // Analytics pages
+    const analyticsModule = allModules.find(m => m.name === 'analytics')
+    if (analyticsModule) {
+      pageData.push(
+        { moduleId: analyticsModule.id, name: 'dashboard', displayName: 'Panel', routePath: '', description: 'Dashboard de análisis', icon: '📈', requiresId: false, sortOrder: 0 }
+      )
+    }
+
+    await db.insert(modulePages).values(pageData).onConflictDoNothing()
+
+    // 3. Crear organizaciones
     console.log('🏢 Creando organizaciones...')
     const [gymOrg] = await db.insert(organizations).values({
       name: 'Gimnasio Demo',
       slug: 'gimnasio-demo',
       type: 'gym',
       settings: { timezone: 'America/Argentina/Buenos_Aires' }
-    }).returning()
+    }).onConflictDoNothing().returning()
 
-    const [restaurantOrg] = await db.insert(organizations).values({
-      name: 'Restaurante Demo',
-      slug: 'restaurante-demo', 
-      type: 'restaurant',
-      settings: { timezone: 'America/Argentina/Buenos_Aires' }
-    }).returning()
-
-    // 3. Crear Super Admin
+    // 4. Crear Super Admin
     console.log('👤 Creando Super Admin...')
     const hashedPassword = bcrypt.hashSync('admin123', 10)
     
@@ -74,24 +110,22 @@ async function seed() {
       name: 'Super Admin',
       hashedPassword,
       role: 'super_admin'
-    }).returning()
+    }).onConflictDoNothing().returning()
 
     await db.insert(superAdmins).values({
       userId: superAdminUser.id,
-      level: 3
-    })
+    }).onConflictDoNothing()
 
-    // 4. Crear usuarios de organizaciones
+    // 5. Crear usuarios de organizaciones
     console.log('👥 Creando usuarios de organizaciones...')
     
-    // Gimnasio
     const [gymAdmin] = await db.insert(users).values({
       email: 'admin@gimnasio-demo.com',
       name: 'Admin Gimnasio',
       hashedPassword,
       organizationId: gymOrg.id,
       role: 'admin'
-    }).returning()
+    }).onConflictDoNothing().returning()
 
     await db.insert(users).values([
       {
@@ -100,39 +134,11 @@ async function seed() {
         hashedPassword,
         organizationId: gymOrg.id,
         role: 'reception'
-      },
-      {
-        email: 'manager@gimnasio-demo.com',
-        name: 'Manager Canchas',
-        hashedPassword,
-        organizationId: gymOrg.id,
-        role: 'court_manager'
       }
-    ])
+    ]).onConflictDoNothing()
 
-    // Restaurante
-    await db.insert(users).values([
-      {
-        email: 'admin@restaurante-demo.com',
-        name: 'Admin Restaurante',
-        hashedPassword,
-        organizationId: restaurantOrg.id,
-        role: 'admin'
-      },
-      {
-        email: 'cajero@restaurante-demo.com',
-        name: 'Cajero',
-        hashedPassword,
-        organizationId: restaurantOrg.id,
-        role: 'cashier'
-      }
-    ])
-
-    // 5. Asignar módulos a organizaciones
+    // 6. Asignar módulos a organizaciones (mantener compatibilidad)
     console.log('🔗 Asignando módulos...')
-    const allModules = await db.select().from(modules)
-    
-    // Gimnasio: todos los módulos
     for (const module of allModules) {
       await db.insert(organizationModules).values({
         organizationId: gymOrg.id,
@@ -140,12 +146,19 @@ async function seed() {
       }).onConflictDoNothing()
     }
 
-    // Restaurante: solo POS y usuarios
-    const restaurantModules = allModules.filter(m => ['pos', 'users', 'analytics'].includes(m.name))
-    for (const module of restaurantModules) {
-      await db.insert(organizationModules).values({
-        organizationId: restaurantOrg.id,
-        moduleId: module.id
+    // 7. Asignar permisos granulares de páginas
+    console.log('🔐 Asignando permisos de páginas...')
+    const allPages = await db.select().from(modulePages)
+    
+    // Dar todos los permisos a la organización demo
+    for (const page of allPages) {
+      await db.insert(organizationModulePages).values({
+        organizationId: gymOrg.id,
+        modulePageId: page.id,
+        canRead: true,
+        canWrite: true,
+        canDelete: true,
+        grantedBy: superAdminUser.id,
       }).onConflictDoNothing()
     }
 
@@ -154,7 +167,9 @@ async function seed() {
     console.log('🔹 Super Admin: admin@admin.com / admin123')
     console.log('🔹 Gym Admin: admin@gimnasio-demo.com / admin123')
     console.log('🔹 Gym Reception: recepcion@gimnasio-demo.com / admin123')
-    console.log('🔹 Restaurant Admin: admin@restaurante-demo.com / admin123')
+    console.log('\n📊 Estadísticas:')
+    console.log(`🔹 Módulos creados: ${allModules.length}`)
+    console.log(`🔹 Páginas creadas: ${allPages.length}`)
 
   } catch (error) {
     console.error('❌ Error en seed:', error)
