@@ -139,13 +139,8 @@ async function seed() {
     console.log('✅ Seed completado!')
     console.log('\n📋 Credenciales:')
     console.log('🔹 Super Admin: admin@admin.com / admin123')
-    console.log('🔹 Gimnasio (CON booking): admin@gimnasio-central.com / admin123')
-    console.log('🔹 Spa (SIN módulos): admin@spa-wellness.com / admin123')
-    console.log('\n📊 Estadísticas:')
-    console.log('🔹 Módulos: 1 (booking)')
-    console.log('🔹 Organizaciones: 2')
-    console.log('🔹 Gimnasio tiene acceso a booking con datos de prueba')
-    console.log('🔹 Spa NO tiene módulos asignados')
+    console.log('🔹 Gimnasio: admin@gimnasio-central.com / admin123')
+    console.log('🔹 Spa: admin@spa-wellness.com / admin123')
 
   } catch (error) {
     console.error('❌ Error en seed:', error)
@@ -156,20 +151,24 @@ async function seed() {
 async function createBookingTables(orgSlug: string, orgId: string) {
   const tenantDb = getTenantDb(orgSlug)
   
+  // Eliminar tablas existentes primero
+  await tenantDb.execute(sql`DROP TABLE IF EXISTS court_reservations CASCADE`)
+  await tenantDb.execute(sql`DROP TABLE IF EXISTS events CASCADE`) 
+  await tenantDb.execute(sql`DROP TABLE IF EXISTS courts CASCADE`)
+  
   await tenantDb.execute(sql`
-    CREATE TABLE IF NOT EXISTS courts (
+    CREATE TABLE courts (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       name text NOT NULL,
       type text NOT NULL,
       organization_id uuid NOT NULL,
       is_active boolean DEFAULT true,
-      created_at timestamp DEFAULT now(),
-      updated_at timestamp DEFAULT now()
+      created_at timestamp DEFAULT now()
     )
   `)
 
   await tenantDb.execute(sql`
-    CREATE TABLE IF NOT EXISTS court_reservations (
+    CREATE TABLE court_reservations (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       court_id uuid NOT NULL,
       name text,
@@ -178,29 +177,8 @@ async function createBookingTables(orgSlug: string, orgId: string) {
       end_time timestamp NOT NULL,
       status text DEFAULT 'confirmed',
       payment_method text DEFAULT 'pending',
-      is_recurring boolean DEFAULT false,
-      recurrence_end timestamp,
-      paid_sessions integer,
-      last_payment_date timestamp,
-      payment_notes text,
-      current_account_id uuid,
       organization_id uuid NOT NULL,
-      created_at timestamp DEFAULT now(),
-      updated_at timestamp DEFAULT now()
-    )
-  `)
-
-  await tenantDb.execute(sql`
-    CREATE TABLE IF NOT EXISTS events (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      name text NOT NULL,
-      date timestamp NOT NULL,
-      start_time timestamp NOT NULL,
-      end_time timestamp NOT NULL,
-      court_ids uuid[] NOT NULL,
-      organization_id uuid NOT NULL,
-      created_at timestamp DEFAULT now(),
-      updated_at timestamp DEFAULT now()
+      created_at timestamp DEFAULT now()
     )
   `)
 }
@@ -214,18 +192,27 @@ async function seedBookingData(orgSlug: string, orgId: string) {
     ('Cancha Fútbol 2', 'futbol', ${orgId}),
     ('Cancha Pádel 1', 'padel', ${orgId}),
     ('Cancha Pádel 2', 'padel', ${orgId})
-    ON CONFLICT DO NOTHING
   `)
 
-  const courts = await tenantDb.execute(sql`SELECT id, name, type FROM courts WHERE organization_id = ${orgId}`)
+  const courtsQuery = await tenantDb.execute(sql`SELECT id, name, type FROM courts WHERE organization_id = ${orgId}`)
   
-  if (courts.rows.length > 0) {
-    const futbolCourt = courts.rows.find(c => c.type === 'futbol')
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+  let courts: any[] = []
+  if (Array.isArray(courtsQuery)) {
+    courts = courtsQuery
+  } else if (courtsQuery && 'rows' in courtsQuery) {
+    courts = courtsQuery.rows
+  }
+  
+  console.log(`📋 Canchas encontradas: ${courts.length}`)
+  
+  if (courts.length > 0) {
+    const futbolCourt = courts.find(c => c.type === 'futbol')
 
     if (futbolCourt) {
+      // ✅ FECHAS COMO STRINGS ISO
+      const startTime = '2025-09-20 18:00:00'
+      const endTime = '2025-09-20 19:00:00'
+      
       await tenantDb.execute(sql`
         INSERT INTO court_reservations (
           court_id, name, phone, start_time, end_time, 
@@ -234,14 +221,14 @@ async function seedBookingData(orgSlug: string, orgId: string) {
           ${futbolCourt.id}, 
           'Juan Pérez', 
           '1234567890',
-          ${new Date(today.getFullYear(), today.getMonth(), today.getDate(), 18, 0)},
-          ${new Date(today.getFullYear(), today.getMonth(), today.getDate(), 19, 0)},
+          ${startTime},
+          ${endTime},
           'confirmed',
           'cash',
           ${orgId}
         )
-        ON CONFLICT DO NOTHING
       `)
+      console.log('✅ Reserva de prueba creada')
     }
   }
 }

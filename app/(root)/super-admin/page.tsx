@@ -22,7 +22,7 @@ export default function SuperAdminPage() {
   const fetchStats = async () => {
     try {
       const [orgsRes, modsRes] = await Promise.all([
-        fetch('/api/organizations'),
+        fetch('/api/organization'),
         fetch('/api/modules')
       ])
       

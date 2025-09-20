@@ -203,7 +203,7 @@ export default function ModulesPage() {
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({...form, name: e.target.value})}
-                    className="w-full p-2 border rounded text-black"
+                    className="w-full p-2 border rounded text-white"
                     placeholder="ej: inventory, crm, etc"
                     required
                   />
@@ -215,7 +215,7 @@ export default function ModulesPage() {
                     type="text"
                     value={form.displayName}
                     onChange={(e) => setForm({...form, displayName: e.target.value})}
-                    className="w-full p-2 border rounded text-black"
+                    className="w-full p-2 border rounded text-white"
                     placeholder="ej: Control de Inventario"
                     required
                   />
@@ -226,7 +226,7 @@ export default function ModulesPage() {
                   <textarea
                     value={form.description}
                     onChange={(e) => setForm({...form, description: e.target.value})}
-                    className="w-full p-2 border rounded text-black"
+                    className="w-full p-2 border rounded text-white"
                     placeholder="Describe qué hace este módulo"
                     rows={3}
                     required
@@ -238,12 +238,12 @@ export default function ModulesPage() {
                   <select
                     value={form.category}
                     onChange={(e) => setForm({...form, category: e.target.value})}
-                    className="w-full p-2 border rounded text-black"
+                    className="w-full p-2 border rounded text-white"
                   >
-                    <option value="business">Business</option>
-                    <option value="core">Core</option>
-                    <option value="analytics">Analytics</option>
-                    <option value="tools">Tools</option>
+                    <option className="text-black" value="business">Business</option>
+                    <option className="text-black" value="core">Core</option>
+                    <option className="text-black" value="analytics">Analytics</option>
+                    <option className="text-black" value="tools">Tools</option>
                   </select>
                 </div>
                 
@@ -253,7 +253,7 @@ export default function ModulesPage() {
                     type="text"
                     value={form.icon}
                     onChange={(e) => setForm({...form, icon: e.target.value})}
-                    className="w-full p-2 border rounded text-black"
+                    className="w-full p-2 border rounded text-white"
                     placeholder="📦"
                   />
                 </div>

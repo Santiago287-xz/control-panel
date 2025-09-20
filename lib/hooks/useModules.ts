@@ -31,7 +31,6 @@ export function useModules() {
           fetch('/api/permissions'),
           fetch('/api/modules-with-details')
         ])
-        
         const permissionsData = await permissionsRes.json()
         const modulesData = await modulesRes.json()
         

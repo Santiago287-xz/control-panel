@@ -1,54 +1,64 @@
-// lib/modules/permissions.ts - SIN REGISTRY
+import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from '@/lib/auth/config'
-import { db } from '@/lib/db'
+import { adminDb } from '@/lib/db/tenant'
 import { organizationModules, modules } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
-export async function checkModuleAccess(
-  userId: string,
-  organizationId: string,
-  moduleName: string
-): Promise<boolean> {
+export async function GET() {
   try {
-    const [orgModule] = await db
-      .select()
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Super admins have access to all modules
+    if (session.user.isSuperAdmin) {
+      const allModules = await adminDb.select().from(modules)
+      const permissions = allModules.map(module => ({
+        moduleId: module.id,
+        moduleName: module.name,
+        canRead: true,
+        canWrite: true,
+        canDelete: true,
+        canManage: true
+      }))
+      return NextResponse.json({ permissions })
+    }
+
+    // Tenant users - get org enabled modules
+    if (!session.user.organizationId) {
+      return NextResponse.json({ permissions: [] })
+    }
+
+    const orgModules = await adminDb
+      .select({
+        moduleId: modules.id,
+        moduleName: modules.name,
+        displayName: modules.displayName
+      })
       .from(organizationModules)
       .innerJoin(modules, eq(organizationModules.moduleId, modules.id))
       .where(
         and(
-          eq(organizationModules.organizationId, organizationId),
-          eq(modules.name, moduleName),
+          eq(organizationModules.organizationId, session.user.organizationId),
           eq(organizationModules.isEnabled, true)
         )
       )
-      .limit(1)
 
-    return !!orgModule
+    const permissions = orgModules.map(module => ({
+      moduleId: module.moduleId,
+      moduleName: module.moduleName,
+      canRead: true,
+      canWrite: true, 
+      canDelete: false,
+      canManage: false
+    }))
+
+    return NextResponse.json({ permissions })
   } catch (error) {
-    console.error('Error checking module access:', error)
-    return false
-  }
-}
-
-export async function getSessionWithPermissions() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return null
-
-  return {
-    ...session,
-    user: {
-      ...session.user,
-      canAccess: async (moduleName: string) => {
-        if (session.user.isSuperAdmin) return true
-        if (!session.user.organizationId) return false
-        
-        return await checkModuleAccess(
-          session.user.id, 
-          session.user.organizationId, 
-          moduleName
-        )
-      }
-    }
+    console.error('Error fetching permissions:', error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

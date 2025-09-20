@@ -28,3 +28,20 @@ npm run db:seed
 empezo a tirar el error de Safab, que es el nombre de usuario del sistema
 
 El problema supuestamente está en lib/db/tenant.ts. Está creando conexiones nuevas sin la configuración explícita
+
+Para iniciar el sistema hay que
+iniciar docker(tiene que estar prendida la imagen "postgress"), y ejecutar npm run dev
+
+-------- Todo
+
+layout global en [orgSlug]
+migrar booking y probar schemas funcionales
+crear usuarios roles, dentro de cada organizacion
+
+--------
+
+Prompt:
+
+Contexto del Sistema: Estoy desarrollando un sistema SaaS multi-tenant que permite a diferentes organizaciones (gimnasios, spas, clínicas, etc.) gestionar sus operaciones mediante módulos dinámicos. El sistema tiene una arquitectura modular donde los desarrolladores pueden crear nuevos módulos simplemente agregando carpetas de código, sin modificar la base. Arquitectura Actual: El sistema tiene tres niveles de usuarios:  Super Administradores: Gestionan el sistema completo, registran módulos disponibles y los asignan a organizaciones  Administradores de Organización: Gestionan su organización específica * Usuarios Finales: Utilizan los módulos según sus permisos
+
+Se utiliza RLS para la db
