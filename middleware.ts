@@ -16,16 +16,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
+  // Extract orgSlug from URL
+  const orgSlugMatch = pathname.match(/^\/org\/([^\/]+)/)
+  if (orgSlugMatch) {
+    const orgSlug = orgSlugMatch[1]
+    
+    // Add orgSlug to headers for API routes
+    const response = NextResponse.next()
+    response.headers.set('x-org-slug', orgSlug)
+    return response
+  }
+
   // Super admin routes
   if (pathname.startsWith("/super-admin")) {
     if (!token.isSuperAdmin) {
-      return NextResponse.redirect(new URL("/dashboard", request.url))
-    }
-  }
-
-  // Organization routes
-  if (pathname.startsWith("/org/")) {
-    if (!token.organizationId) {
       return NextResponse.redirect(new URL("/dashboard", request.url))
     }
   }

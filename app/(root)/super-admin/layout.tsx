@@ -57,6 +57,16 @@ export default function SuperAdminLayout({
               </li>
               <li>
                 <Link
+                  href="/super-admin/organizations/create"
+                  className={`block px-3 py-2 rounded ${
+                    pathname.startsWith("/super-admin/organizations/create") ? "bg-blue-100 text-blue-700" : "hover:bg-gray-700"
+                  }`}
+                >
+                  Crear Organizaciones
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/super-admin/modules"
                   className={`block px-3 py-2 rounded ${
                     pathname.startsWith("/super-admin/modules") ? "bg-blue-100 text-blue-700" : "hover:bg-gray-700"

@@ -1,19 +1,14 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from "next-auth/next"
-import { authOptions } from '@/lib/auth/config'
-import { db } from '@/lib/db'
+import { NextRequest, NextResponse } from 'next/server'
+import { getSessionAndDb } from '@/lib/db/api-helpers'
 import { organizationModules, modules } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const { session, db, isAdmin } = await getSessionAndDb(request)
 
     // Super admins have access to all modules
-    if (session.user.isSuperAdmin) {
+    if (isAdmin) {
       const allModules = await db.select().from(modules)
       const permissions = allModules.map(module => ({
         moduleId: module.id,
@@ -26,7 +21,7 @@ export async function GET() {
       return NextResponse.json({ permissions })
     }
 
-    // Regular users - get org enabled modules with basic permissions
+    // Tenant users - get org enabled modules
     if (!session.user.organizationId) {
       return NextResponse.json({ permissions: [] })
     }
@@ -46,7 +41,6 @@ export async function GET() {
         )
       )
 
-    // Dar permisos básicos por ahora, después implementa tu lógica dinámica
     const permissions = orgModules.map(module => ({
       moduleId: module.moduleId,
       moduleName: module.moduleName,
