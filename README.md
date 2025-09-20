@@ -1,47 +1,39 @@
-mi problema actual es ejecutar el seed.ts, me dice:
-
-{
-  severity_local: 'NOTICE',
-  severity: 'NOTICE',
-  code: '42P07',
-  message: 'relation "courts" already exists, skipping',
-  file: 'parse_utilcmd.c',
-  line: '207',
-  routine: 'transformCreateStmt'
-}
-📊 Insertando datos de prueba...
-❌ Error en seed: TypeError: Cannot read properties of undefined (reading 'length')
-    at seedBookingData (F:\Programación\control-panel\lib\db\seed.ts:222:19)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async seed (F:\Programación\control-panel\lib\db\seed.ts:137:5)
-
-
-https://claude.ai/chat/68651abb-3037-4239-8f05-dc8b253abe5e
-
-estoy intentado ejecutar:
-npm run db:drop
-npm run db:generate 
-npm run db:migrate
-npm run db:seed
-
-
-empezo a tirar el error de Safab, que es el nombre de usuario del sistema
-
-El problema supuestamente está en lib/db/tenant.ts. Está creando conexiones nuevas sin la configuración explícita
-
-Para iniciar el sistema hay que
-iniciar docker(tiene que estar prendida la imagen "postgress"), y ejecutar npm run dev
-
 -------- Todo
 
-layout global en [orgSlug]
+layout global en [orgSlug] 🟢
+limpieza tablas innecesarias 🟡
+limpiar hooks(hay 400 versiones que hacen lo mismo)
+cuando se crean las organizaciones se tiene que crear un schema
+cuando se activa un modulo se tienen que crear las tablas correspondientes
 migrar booking y probar schemas funcionales
 crear usuarios roles, dentro de cada organizacion
+
+-------- Aclaracion
+
+Parece que actualmente funcionan los tenant, se puede ver el https://local.drizzle.studio/
+seleccionado el schema correspondiente, pero no hay ningun dato... ni usuarios, todavia
+no hay nada integrado...
+
+-------- Comandos
+
+# Parar contenedor
+docker stop saas_postgres
+
+# Eliminar contenedor y volumen
+docker rm saas_postgres
+docker volume rm control-panel_postgres_data
+
+# Recrear desde cero
+docker-compose up -d
+
+# Ver tablas
+docker exec saas_postgres psql -U admin -d saas_db -c "\dt"
 
 --------
 
 Prompt:
 
-Contexto del Sistema: Estoy desarrollando un sistema SaaS multi-tenant que permite a diferentes organizaciones (gimnasios, spas, clínicas, etc.) gestionar sus operaciones mediante módulos dinámicos. El sistema tiene una arquitectura modular donde los desarrolladores pueden crear nuevos módulos simplemente agregando carpetas de código, sin modificar la base. Arquitectura Actual: El sistema tiene tres niveles de usuarios:  Super Administradores: Gestionan el sistema completo, registran módulos disponibles y los asignan a organizaciones  Administradores de Organización: Gestionan su organización específica * Usuarios Finales: Utilizan los módulos según sus permisos
+Contexto del Sistema: Estoy desarrollando un sistema SaaS multi-tenant que permite a diferentes organizaciones (gimnasios, spas, clínicas, etc.) gestionar sus operaciones mediante módulos dinámicos. El sistema tiene una arquitectura modular donde los desarrolladores pueden crear nuevos módulos simplemente agregando carpetas de código, sin modificar la base. Arquitectura Actual: El sistema tiene tres niveles de usuarios:  Super Administradores: Gestionan el sistema completo, registran módulos disponibles y los asignan a organizaciones  Administradores de Organización: Gestionan su organización específica * Usuarios Finales: Utilizan los módulos según sus permisos. Todo el codigo enviado en caso de 
+ser una modificación NO CAMBIAR NOMBRES, no utilizar librerias a no ser de necesario completamente, mantener la simpleza.
 
 Se utiliza RLS para la db

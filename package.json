@@ -11,6 +11,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"db:seed": "tsx lib/db/seed.ts",
+		"db:migrate-booking": "tsx scripts/migrate-booking.ts",
 		"db:reset": "npm run db:drop && npm run db:generate && npm run db:migrate && npm run db:seed",
 		"db:drop": "tsx scripts/drop-tables.ts"
 	},

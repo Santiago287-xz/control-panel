@@ -5,30 +5,22 @@ async function dropTables() {
   console.log('🗑️ Eliminando esquemas y tablas...')
   
   try {
-    // 1. PRIMERO eliminar esquemas tenant COMPLETAMENTE
+    // Eliminar esquemas de tenant primero
     await adminDb.execute(sql`DROP SCHEMA IF EXISTS "gimnasio-central" CASCADE`)
     await adminDb.execute(sql`DROP SCHEMA IF EXISTS "spa-wellness" CASCADE`)
-    console.log('✅ Esquemas tenant eliminados')
     
-    // 2. Luego eliminar tablas del esquema público
-    const tables = [
-      'user_module_page_permissions',
-      'organization_module_pages', 
-      'module_pages',
-      'audit_logs',
-      'module_data',
-      'organization_modules',
-      'super_admins',
-      'users',
-      'modules', 
-      'organizations'
-    ]
+    // Eliminar tablas del esquema público
+    await adminDb.execute(sql`DROP TABLE IF EXISTS user_module_page_permissions CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS organization_module_pages CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS module_pages CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS audit_logs CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS module_data CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS organization_modules CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS super_admins CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS users CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS modules CASCADE`)
+    await adminDb.execute(sql`DROP TABLE IF EXISTS organizations CASCADE`)
     
-    for (const table of tables) {
-      await adminDb.execute(sql`DROP TABLE IF EXISTS ${sql.identifier(table)} CASCADE`)
-    }
-    
-    console.log('✅ Tablas públicas eliminadas')
     console.log('✅ Todo eliminado')
   } catch (error) {
     console.error('❌ Error:', error)

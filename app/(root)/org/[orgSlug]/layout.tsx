@@ -4,8 +4,10 @@
 import { use } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useModules } from "@/lib/hooks/useModules"
+import { useModulePermissionCheck } from "@/lib/hooks/useModulePermissionCheck"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { AccessDenied } from "@/components/AccessDenied"
 
 export default function OrgLayout({
   children,
@@ -19,9 +21,19 @@ export default function OrgLayout({
   const { modules, loading } = useModules()
   const pathname = usePathname()
 
+  // Extraer módulo de la URL dinámicamente
+  const moduleFromPath = extractModuleFromPath(pathname, orgSlug)
+  
+  // Verificar permisos solo si estamos en una ruta de módulo
+  const { hasAccess, loading: permissionLoading, error } = useModulePermissionCheck(
+    moduleFromPath?.moduleName || null
+  )
+
   const isActive = (path: string) => pathname.startsWith(path)
 
-  if (loading) return <div className="p-8">Cargando...</div>
+  if (loading || permissionLoading) {
+    return <div className="p-8">Cargando...</div>
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
@@ -72,9 +84,39 @@ export default function OrgLayout({
         </nav>
 
         <main className="flex-1 p-6">
-          {children}
+          {moduleFromPath && !hasAccess && !error ? (
+            <AccessDenied 
+              module={moduleFromPath?.displayName || moduleFromPath?.moduleName}
+              message={`No tienes permisos para acceder al módulo ${moduleFromPath?.displayName || moduleFromPath?.moduleName}.`}
+            />
+          ) : children}
         </main>
       </div>
     </div>
   )
+}
+
+// Función helper para extraer módulo de la URL
+function extractModuleFromPath(pathname: string, orgSlug: string) {
+  const orgBasePath = `/org/${orgSlug}`
+  
+  // Si no estamos en una ruta de org, no hay módulo
+  if (!pathname.startsWith(orgBasePath)) return null
+  
+  // Extraer la parte después de /org/[orgSlug]/
+  const pathAfterOrg = pathname.slice(orgBasePath.length)
+  
+  // Si es la raíz (/org/[orgSlug]) no hay módulo
+  if (!pathAfterOrg || pathAfterOrg === '/') return null
+  
+  // Extraer el primer segmento (el módulo)
+  const segments = pathAfterOrg.split('/').filter(Boolean)
+  if (segments.length === 0) return null
+  
+  const moduleName = segments[0]
+  
+  return {
+    moduleName,
+    displayName: moduleName.charAt(0).toUpperCase() + moduleName.slice(1)
+  }
 }

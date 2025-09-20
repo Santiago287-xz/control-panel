@@ -1,14 +1,16 @@
+// lib/db/seed.ts - ACTUALIZADO PARA ESQUEMA SIMPLIFICADO
 import { adminDb, getTenantDb } from './tenant'
 import { createTenantSchema } from './schema-manager'
-import { modules, modulePages, users, superAdmins, organizations, organizationModules, organizationModulePages } from './schema'
+import { createBookingTables } from './booking-tables'
+import { modules, users, superAdmins, organizations, organizationModules } from './schema'
 import bcrypt from 'bcryptjs'
-import { sql, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 async function seed() {
-  console.log('🌱 Iniciando seed completo con booking...')
+  console.log('🌱 Iniciando seed completo...')
 
   try {
-    // 1. Crear o buscar módulo booking
+    // 1. Crear módulo booking
     console.log('📦 Creando módulo booking...')
     let bookingModule = await adminDb.select().from(modules).where(eq(modules.name, 'booking')).limit(1)
     
@@ -25,18 +27,7 @@ async function seed() {
 
     const moduleId = bookingModule[0].id
 
-    // 2. Crear páginas del módulo booking
-    console.log('📄 Creando páginas del módulo booking...')
-    const pageData = [
-      { moduleId, name: 'dashboard', displayName: 'Panel', routePath: '', description: 'Dashboard principal', icon: '📊', requiresId: false, sortOrder: 0 },
-      { moduleId, name: 'calendar', displayName: 'Calendario', routePath: '/calendar', description: 'Vista de calendario', icon: '📅', requiresId: false, sortOrder: 1 },
-      { moduleId, name: 'courts', displayName: 'Canchas', routePath: '/courts', description: 'Gestión de canchas', icon: '🏟️', requiresId: false, sortOrder: 2 },
-      { moduleId, name: 'reservations', displayName: 'Reservas', routePath: '/reservations', description: 'Lista de reservas', icon: '📋', requiresId: false, sortOrder: 3 }
-    ]
-
-    const bookingPages = await adminDb.insert(modulePages).values(pageData).onConflictDoNothing().returning()
-
-    // 3. Crear Super Admin
+    // 2. Crear Super Admin
     console.log('👤 Creando Super Admin...')
     const hashedPassword = bcrypt.hashSync('admin123', 10)
     
@@ -56,7 +47,7 @@ async function seed() {
       }).onConflictDoNothing()
     }
 
-    // 4. Crear organizaciones
+    // 3. Crear organizaciones
     console.log('🏢 Creando organizaciones...')
     let gymOrg = await adminDb.select().from(organizations).where(eq(organizations.slug, 'gimnasio-central')).limit(1)
     let spaOrg = await adminDb.select().from(organizations).where(eq(organizations.slug, 'spa-wellness')).limit(1)
@@ -81,12 +72,12 @@ async function seed() {
       spaOrg = [newSpa]
     }
 
-    // 5. Crear esquemas para organizaciones
+    // 4. Crear esquemas para organizaciones
     console.log('🔧 Creando esquemas de tenant...')
     await createTenantSchema('gimnasio-central')
     await createTenantSchema('spa-wellness')
 
-    // 6. Crear admins de organizaciones
+    // 5. Crear admins de organizaciones
     console.log('👥 Creando admins de organizaciones...')
     await adminDb.insert(users).values([
       {
@@ -105,7 +96,7 @@ async function seed() {
       }
     ]).onConflictDoNothing()
 
-    // 7. Asignar módulo booking al gimnasio
+    // 6. Asignar módulo booking al gimnasio
     console.log('🔗 Asignando módulo al gimnasio...')
     await adminDb.insert(organizationModules).values({
       organizationId: gymOrg[0].id,
@@ -113,28 +104,10 @@ async function seed() {
       isEnabled: true
     }).onConflictDoNothing()
 
-    // 8. Asignar permisos de páginas al gimnasio (solo si hay páginas)
-    if (bookingPages.length > 0) {
-      console.log('🔐 Asignando permisos de páginas...')
-      for (const page of bookingPages) {
-        await adminDb.insert(organizationModulePages).values({
-          organizationId: gymOrg[0].id,
-          modulePageId: page.id,
-          canRead: true,
-          canWrite: true,
-          canDelete: true,
-          grantedBy: superAdminUser[0].id,
-        }).onConflictDoNothing()
-      }
-    }
-
-    // 9. Crear tablas de booking en esquema del gimnasio
-    console.log('🏗️ Creando tablas de booking en gimnasio...')
-    await createBookingTables('gimnasio-central', gymOrg[0].id)
-    
-    // 10. Insertar datos de prueba en gimnasio
-    console.log('📊 Insertando datos de prueba...')
-    await seedBookingData('gimnasio-central', gymOrg[0].id)
+    // 7. Crear tablas de booking en esquemas tenant
+    console.log('🏗️ Creando tablas de booking...')
+    const gymTenantDb = getTenantDb('gimnasio-central')
+    await createBookingTables(gymTenantDb, gymOrg[0].id)
 
     console.log('✅ Seed completado!')
     console.log('\n📋 Credenciales:')
@@ -145,91 +118,6 @@ async function seed() {
   } catch (error) {
     console.error('❌ Error en seed:', error)
     process.exit(1)
-  }
-}
-
-async function createBookingTables(orgSlug: string, orgId: string) {
-  const tenantDb = getTenantDb(orgSlug)
-  
-  // Eliminar tablas existentes primero
-  await tenantDb.execute(sql`DROP TABLE IF EXISTS court_reservations CASCADE`)
-  await tenantDb.execute(sql`DROP TABLE IF EXISTS events CASCADE`) 
-  await tenantDb.execute(sql`DROP TABLE IF EXISTS courts CASCADE`)
-  
-  await tenantDb.execute(sql`
-    CREATE TABLE courts (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      name text NOT NULL,
-      type text NOT NULL,
-      organization_id uuid NOT NULL,
-      is_active boolean DEFAULT true,
-      created_at timestamp DEFAULT now()
-    )
-  `)
-
-  await tenantDb.execute(sql`
-    CREATE TABLE court_reservations (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      court_id uuid NOT NULL,
-      name text,
-      phone text,
-      start_time timestamp NOT NULL,
-      end_time timestamp NOT NULL,
-      status text DEFAULT 'confirmed',
-      payment_method text DEFAULT 'pending',
-      organization_id uuid NOT NULL,
-      created_at timestamp DEFAULT now()
-    )
-  `)
-}
-
-async function seedBookingData(orgSlug: string, orgId: string) {
-  const tenantDb = getTenantDb(orgSlug)
-  
-  await tenantDb.execute(sql`
-    INSERT INTO courts (name, type, organization_id) VALUES 
-    ('Cancha Fútbol 1', 'futbol', ${orgId}),
-    ('Cancha Fútbol 2', 'futbol', ${orgId}),
-    ('Cancha Pádel 1', 'padel', ${orgId}),
-    ('Cancha Pádel 2', 'padel', ${orgId})
-  `)
-
-  const courtsQuery = await tenantDb.execute(sql`SELECT id, name, type FROM courts WHERE organization_id = ${orgId}`)
-  
-  let courts: any[] = []
-  if (Array.isArray(courtsQuery)) {
-    courts = courtsQuery
-  } else if (courtsQuery && 'rows' in courtsQuery) {
-    courts = courtsQuery.rows
-  }
-  
-  console.log(`📋 Canchas encontradas: ${courts.length}`)
-  
-  if (courts.length > 0) {
-    const futbolCourt = courts.find(c => c.type === 'futbol')
-
-    if (futbolCourt) {
-      // ✅ FECHAS COMO STRINGS ISO
-      const startTime = '2025-09-20 18:00:00'
-      const endTime = '2025-09-20 19:00:00'
-      
-      await tenantDb.execute(sql`
-        INSERT INTO court_reservations (
-          court_id, name, phone, start_time, end_time, 
-          status, payment_method, organization_id
-        ) VALUES (
-          ${futbolCourt.id}, 
-          'Juan Pérez', 
-          '1234567890',
-          ${startTime},
-          ${endTime},
-          'confirmed',
-          'cash',
-          ${orgId}
-        )
-      `)
-      console.log('✅ Reserva de prueba creada')
-    }
   }
 }
 
