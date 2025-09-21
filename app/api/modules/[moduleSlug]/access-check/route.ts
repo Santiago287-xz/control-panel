@@ -1,13 +1,12 @@
 // app/api/modules/[moduleSlug]/access-check/route.ts
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from '@/lib/auth/config'
 import { db } from '@/lib/db'
-import { modules, organizationModules, organizationModulePages, modulePages } from '@/lib/db/schema'
+import { modules, organizationModules } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 export async function GET(
-  request: NextRequest,
   { params }: { params: Promise<{ moduleSlug: string }> }
 ) {
   try {

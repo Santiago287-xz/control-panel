@@ -9,7 +9,7 @@ export async function PUT(
   { params }: { params: Promise<{ orgSlug: string; courtId: string }> }
 ) {
   try {
-    const { orgSlug, courtId } = await params
+    const { courtId } = await params
     const { session, db } = await getSessionAndDb()
     const { name, type, isActive } = await request.json()
 

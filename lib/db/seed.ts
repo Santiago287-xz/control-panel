@@ -1,13 +1,12 @@
-// lib/db/seed.ts - ACTUALIZADO PARA ESQUEMA SIMPLIFICADO
-import { adminDb, getTenantDb } from './tenant'
-import { createTenantSchema } from './schema-manager'
-import { createBookingTables } from './booking-tables'
+// lib/db/seed.ts - SEED SIMPLIFICADO
+import { adminDb } from './tenant'
+import { createTenantSchema, enableModuleForTenant } from './schema-manager'
 import { modules, users, superAdmins, organizations, organizationModules } from './schema'
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 
 async function seed() {
-  console.log('🌱 Iniciando seed completo...')
+  console.log('🌱 Iniciando seed con schema limpio...')
 
   try {
     // 1. Crear módulo booking
@@ -72,13 +71,8 @@ async function seed() {
       spaOrg = [newSpa]
     }
 
-    // 4. Crear esquemas para organizaciones
-    console.log('🔧 Creando esquemas de tenant...')
-    await createTenantSchema('gimnasio-central')
-    await createTenantSchema('spa-wellness')
-
-    // 5. Crear admins de organizaciones
-    console.log('👥 Creando admins de organizaciones...')
+    // 4. Crear admins de organizaciones en schema público
+    console.log('👥 Creando admins en schema público...')
     await adminDb.insert(users).values([
       {
         email: 'admin@gimnasio-central.com',
@@ -96,24 +90,41 @@ async function seed() {
       }
     ]).onConflictDoNothing()
 
-    // 6. Asignar módulo booking al gimnasio
-    console.log('🔗 Asignando módulo al gimnasio...')
+    // 5. Crear schemas tenant con admins
+    console.log('🏗️ Creando schemas tenant...')
+    await createTenantSchema('gimnasio-central', {
+      email: 'admin@gimnasio-central.com',
+      name: 'Admin Gimnasio',
+      hashedPassword
+    })
+
+    await createTenantSchema('spa-wellness', {
+      email: 'admin@spa-wellness.com',
+      name: 'Admin Spa',
+      hashedPassword
+    })
+
+    // 6. Asignar módulo booking al gimnasio en schema público
+    console.log('🔗 Asignando módulo booking...')
     await adminDb.insert(organizationModules).values({
       organizationId: gymOrg[0].id,
       moduleId: moduleId,
       isEnabled: true
     }).onConflictDoNothing()
 
-    // 7. Crear tablas de booking en esquemas tenant
-    console.log('🏗️ Creando tablas de booking...')
-    const gymTenantDb = getTenantDb('gimnasio-central')
-    await createBookingTables(gymTenantDb, gymOrg[0].id)
+    // 7. Habilitar módulo booking en schema tenant (crear tablas)
+    console.log('📅 Habilitando booking en gimnasio...')
+    await enableModuleForTenant('gimnasio-central', 'booking')
 
-    console.log('✅ Seed completado!')
+    console.log('✅ Seed completado con éxito!')
     console.log('\n📋 Credenciales:')
     console.log('🔹 Super Admin: admin@admin.com / admin123')
     console.log('🔹 Gimnasio: admin@gimnasio-central.com / admin123')
     console.log('🔹 Spa: admin@spa-wellness.com / admin123')
+    console.log('\n🏗️ Estructura:')
+    console.log('🔹 Schema público: organizations, users (admins), modules')
+    console.log('🔹 Schema gimnasio-central: users, booking tables')
+    console.log('🔹 Schema spa-wellness: users solamente')
 
   } catch (error) {
     console.error('❌ Error en seed:', error)

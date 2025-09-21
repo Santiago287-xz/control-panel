@@ -5,11 +5,9 @@ import { getSessionAndDb } from '@/lib/db/api-helpers'
 import { sql } from 'drizzle-orm'
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  request: NextRequest
 ) {
   try {
-    const { orgSlug } = await params
     const { session, db } = await getSessionAndDb()
     const { searchParams } = new URL(request.url)
     

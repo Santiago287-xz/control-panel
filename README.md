@@ -1,3 +1,5 @@
+queda ejecutar el seed https://claude.ai/chat/a1646dba-c4c5-4779-bbd1-aadf2ce6955d
+
 -------- Todo
 
 layout global en [orgSlug] 🟢
